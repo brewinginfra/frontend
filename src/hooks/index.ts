@@ -1,0 +1,1 @@
+export { useAutoRegisterCreator } from './useAutoRegisterCreator';
