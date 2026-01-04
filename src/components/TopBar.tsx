@@ -1,12 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Bell, MessageCircle, Settings, User, Wallet, X, Check, LogOut } from 'lucide-react';
+import { Search, MessageCircle, Settings, User, Wallet, X, Check, LogOut } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { WalletInfo } from './WalletInfo';
 import { Link } from 'react-router-dom';
 import { storage } from '../services/storage';
 import { api, CreatorProfile } from '../services/api';
+import { arbitrumSepolia } from 'viem/chains'
+import { type WalletClient, type Hex, createWalletClient, custom, encodeFunctionData } from 'viem';
+import { useSendTransaction, usePrivy, useWallets, getEmbeddedConnectedWallet } from '@privy-io/react-auth'
 
-export function TopBar() {
+
+interface TopBarProps {
+  embeddedWalletAddress?: string;
+  onLogout?: () => void;
+}
+
+export function TopBar({ embeddedWalletAddress, onLogout }: TopBarProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [editingName, setEditingName] = useState(false);
@@ -15,6 +24,37 @@ export function TopBar() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const [walletClient, setWalletClient] = useState<WalletClient | null>(null)
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+
+  const { wallets } = useWallets();
+  const embeddedWallet = getEmbeddedConnectedWallet(wallets)
+
+
+  useEffect(() => {
+    const createClient = async () => {
+      if (embeddedWallet) {
+        try {
+          const provider = await embeddedWallet.getEthereumProvider()
+          const client = createWalletClient({
+            account: embeddedWallet.address as Hex,
+            chain: arbitrumSepolia,
+            transport: custom(provider!),
+          })
+          setWalletClient(client)
+        } catch (error) {
+          console.error('Failed to create wallet client:', error)
+          setWalletClient(null)
+        }
+      } else {
+        setWalletClient(null)
+      }
+    }
+
+    createClient()
+  }, [embeddedWallet]);
+
 
   // Fetch profile when settings opens
   useEffect(() => {
@@ -71,10 +111,60 @@ export function TopBar() {
     storage.clearCreatorId();
     setProfile(null);
     setShowSettings(false);
-    window.location.reload();
+    // Call the onLogout callback to trigger state refresh in MainApp
+    if (onLogout) {
+      onLogout();
+    }
   };
 
-  const isLoggedIn = !!storage.getCreatorId();
+  const isLoggedIn = !!storage.getCreatorId(); // Or if embeddedWalletAddress exists in a sophisticated app?
+  // Ideally, if we have embedded wallet, we might consider them 'logged in' or at least 'connected'.
+  // But logic relies on creatorId. 
+
+  const { sendTransaction } = useSendTransaction({
+    onSuccess: (receipt) => {
+      console.log('Faucet claim submitted:', receipt.hash);
+      setLastTxHash(receipt.hash);
+      setIsClaiming(false);
+    },
+    onError: (error) => {
+      console.error('Faucet claim failed:', error);
+      setIsClaiming(false);
+    }
+  });
+
+  const handleFaucet = async () => {
+    if (!embeddedWallet) return;
+    try {
+      setIsClaiming(true);
+      const data = encodeFunctionData({
+        abi: [{
+          name: 'faucet',
+          type: 'function',
+          stateMutability: 'nonpayable',
+          inputs: [],
+          outputs: []
+        }],
+        functionName: 'faucet',
+        args: []
+      });
+
+      // Pass empty UI options or valid ones. Sponsor seems to be config based on chain.
+      // But if we need to force it, we might check docs. For now, assuming standard flow.
+      await sendTransaction({
+        to: '0x83BDe9dF64af5e475DB44ba21C1dF25e19A0cf9a',
+        data: data,
+        chainId: 421614,
+      },
+        {
+          sponsor: true,
+        });
+
+    } catch (e) {
+      console.error(e);
+      setIsClaiming(false);
+    }
+  }
 
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-50">
@@ -92,14 +182,24 @@ export function TopBar() {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <ConnectButton showBalance={false} />
+        {walletClient && (
+          <button
+            onClick={handleFaucet}
+            disabled={isClaiming}
+            className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-[#12AAFF] rounded-lg hover:bg-blue-100 transition disabled:opacity-50"
+          >
+            {isClaiming ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Wallet size={16} />
+            )}
+            <span className="text-sm font-semibold">Claim Faucet</span>
+          </button>
+        )}
+        <WalletInfo lastTransactionHash={lastTxHash} />
         <button className="relative p-2 hover:bg-gray-100 rounded-full transition text-gray-600 hover:text-gray-900">
           <MessageCircle className="w-5 h-5" />
           <span className="absolute top-1 right-1 w-2 h-2 bg-[#12AAFF] rounded-full ring-2 ring-white"></span>
-        </button>
-        <button className="relative p-2 hover:bg-gray-100 rounded-full transition text-gray-600 hover:text-gray-900">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-pink-500 rounded-full ring-2 ring-white"></span>
         </button>
 
         {/* Profile & Settings */}
@@ -221,7 +321,7 @@ export function TopBar() {
                     </label>
                     <div className="bg-gray-100 rounded-lg px-3 py-2">
                       <span className="text-gray-600 font-mono text-xs break-all">
-                        {profile?.walletAddress || 'Loading...'}
+                        {profile?.walletAddress || embeddedWalletAddress || 'Loading...'}
                       </span>
                     </div>
                   </div>
@@ -254,7 +354,7 @@ export function TopBar() {
                     Sign in to access your profile settings
                   </p>
                   <Link
-                    to="/"
+                    to="/mainpage"
                     onClick={() => setShowSettings(false)}
                     className="inline-block px-4 py-2 bg-[#12AAFF] text-white rounded-lg font-medium hover:bg-blue-600 transition"
                   >

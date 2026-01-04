@@ -9,7 +9,11 @@ interface AssetWithCreator extends Asset {
   creatorName?: string;
 }
 
-export function Feed() {
+interface FeedProps {
+  onCreatorClick?: (creatorId: number) => void;
+}
+
+export function Feed({ onCreatorClick }: FeedProps = {}) {
   const [assets, setAssets] = useState<AssetWithCreator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,8 +149,8 @@ export function Feed() {
               asset={asset}
               creatorName={asset.creatorName}
               isOwner={isOwner}
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('route-asset-detail', { detail: asset.id }));
+              onCreatorClick={() => {
+                onCreatorClick?.(asset.creatorId);
               }}
             />
           </motion.div>
