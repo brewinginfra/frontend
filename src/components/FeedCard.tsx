@@ -2,9 +2,6 @@ import { useState } from 'react';
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Send, Lock } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Asset } from '../services/api';
-import { api } from '../services/api';
-import { useWallets, getEmbeddedConnectedWallet, useSendTransaction } from '@privy-io/react-auth';
-import { parseUnits, erc20Abi, encodeFunctionData } from 'viem';
 
 interface FeedCardProps {
     asset: Asset;
@@ -37,87 +34,6 @@ export function FeedCard({ asset, creatorName, isOwner = false, onClick }: FeedC
     const handleBookmark = (e: React.MouseEvent) => {
         e.stopPropagation();
         setBookmarked(!bookmarked);
-    };
-
-    const { wallets } = useWallets();
-    const embeddedWallet = getEmbeddedConnectedWallet(wallets);
-    const [localUnlocked, setLocalUnlocked] = useState(isUnlocked);
-    const [isProcessing, setIsProcessing] = useState(false);
-    
-    // Override shouldBlur if locally unlocked
-    const effectiveShouldBlur = shouldBlur && !localUnlocked;
-
-    const { sendTransaction } = useSendTransaction({
-        onError: (error) => {
-            console.error("Payment failed:", error);
-            setIsProcessing(false);
-            alert("Payment failed or cancelled");
-        }
-    });
-
-    const handlePayment = async () => {
-        if (!embeddedWallet) {
-            alert("Please login first");
-            return;
-        }
-        console.log("Payment started");
-        
-        setIsProcessing(true);
-        try {
-            // 1. Get Invoice (402)
-            const responseGet = await api.getPurchaseAsset(asset.id);
-            const invoice = responseGet.paymentDetails;
-            console.log("Invoice:", invoice);
-            
-            const receiverAddress = invoice.receiver;
-            const amount = invoice.amount;
-            
-            if (!receiverAddress || !amount) {
-                throw new Error("Invalid invoice received");
-            }
-
-            console.log("Invoice:", receiverAddress, amount);
-
-            // 2. Pay Invoice (ERC20 Transfer)
-            const data = encodeFunctionData({
-                abi: erc20Abi,
-                functionName: 'transfer',
-                args: [receiverAddress as `0x${string}`, parseUnits(amount.toString(), 6)]
-            });
-
-            const receipt = await sendTransaction({
-                to: '0x83BDe9dF64af5e475DB44ba21C1dF25e19A0cf9a', // mUSDT Address
-                data: data,
-                chainId: 421614
-            },
-        {
-            sponsor: true
-        });
-
-            console.log("Payment sent:", receipt.hash);
-
-            // 3. Verify Payment
-            await api.postVerifyAsset(asset.id, amount.toString(), receiverAddress, receipt.hash);
-            
-            // 4. Unlock
-            setLocalUnlocked(true);
-            setIsProcessing(false);
-            
-        } catch (error) {
-            console.error("Payment failed:", error);
-            // Alert handled in onError for tx failure, but for API errors:
-            // setIsProcessing(false); // Handled in onError for sendTransaction, but what if API fails?
-            // Actually sendTransaction throws? useSendTransaction hook doesn't throw usually if onError is handled? 
-            // Wait, sendTransaction returns a Promise.
-            // If it fails, does the promise reject?
-            // Privy docs say: sendTransaction returns a Promise that resolves to the transaction receipt.
-            // If it fails, it rejects.
-            // So try/catch is correct.
-            // Double check duplicate alert if onError handles it.
-            // onError is called when user rejects or simulation fails.
-        } finally {
-            // setIsProcessing(false); // We handle inside success flow or error flow
-        }
     };
 
     return (
@@ -183,8 +99,7 @@ export function FeedCard({ asset, creatorName, isOwner = false, onClick }: FeedC
                             <ImageWithFallback
                                 src={asset.Url}
                                 alt={asset.description}
-                                className={`w-full h-full object-cover ${effectiveShouldBlur ? 'blur-xl' : ''}`}
-                                // className={`w-full h-full object-cover`}
+                                className={`w-full h-full object-cover ${shouldBlur ? 'blur-xl' : ''}`}
                                 style={{
                                     width: '100%',
                                     height: '100%',
@@ -207,7 +122,7 @@ export function FeedCard({ asset, creatorName, isOwner = false, onClick }: FeedC
                         )}
 
                         {/* Locked Overlay - CONTAINED within image wrapper */}
-                        {effectiveShouldBlur && (
+                        {shouldBlur && (
                             <div
                                 className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-sm"
                                 style={{
@@ -222,11 +137,10 @@ export function FeedCard({ asset, creatorName, isOwner = false, onClick }: FeedC
                                 <Lock className="w-12 h-12 text-white mb-3" />
                                 <p className="text-white font-semibold mb-2">Exclusive Content</p>
                                 <button
-                                    className="bg-[#12AAFF] text-white px-6 py-2 rounded-full hover:bg-blue-600 transition shadow-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                    onClick={handlePayment}
-                                    disabled={isProcessing}
+                                    className="bg-[#12AAFF] text-white px-6 py-2 rounded-full hover:bg-blue-600 transition shadow-lg font-medium text-sm"
+                                    onClick={(e) => e.stopPropagation()}
                                 >
-                                    {isProcessing ? 'Processing...' : `Unlock for ${asset.price} mUSDT`}
+                                    Unlock for {asset.price} ETH
                                 </button>
                             </div>
                         )}

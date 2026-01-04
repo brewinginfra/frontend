@@ -48,7 +48,7 @@ export function Sidebar({ activePage, setActivePage }: SidebarProps) {
         </button>
       </div>
 
-      {/* <button
+      <button
         onClick={() => {
           storage.clearCreatorId();
           navigate('/');
@@ -58,7 +58,7 @@ export function Sidebar({ activePage, setActivePage }: SidebarProps) {
       >
         <LogOut className="w-5 h-5" />
         <span>Log Out</span>
-      </button> */}
+      </button>
     </aside>
   );
 }

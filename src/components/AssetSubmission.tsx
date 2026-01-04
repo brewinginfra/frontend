@@ -2,9 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import { storage } from '../services/storage';
 import { pinata } from '../services/pinata';
-import { Upload, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
-import { useWallets, getEmbeddedConnectedWallet, useSendTransaction } from '@privy-io/react-auth';
-import { parseUnits, erc20Abi, encodeFunctionData } from 'viem';
+import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
 interface AssetSubmissionProps {
     onSuccess: () => void;
@@ -12,9 +10,6 @@ interface AssetSubmissionProps {
 }
 
 export function AssetSubmission({ onSuccess, onRedirectToRegister }: AssetSubmissionProps) {
-    const { wallets } = useWallets();
-    const embeddedWallet = getEmbeddedConnectedWallet(wallets);
-
     const [formData, setFormData] = useState({
         price: '',
         description: ''
@@ -87,14 +82,6 @@ export function AssetSubmission({ onSuccess, onRedirectToRegister }: AssetSubmis
         }
     };
 
-    const { sendTransaction } = useSendTransaction({
-        onError: (error) => {
-            console.error('Fee payment failed', error);
-            setUploadStatus('');
-            setLoading(false);
-        }
-    });
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -109,35 +96,6 @@ export function AssetSubmission({ onSuccess, onRedirectToRegister }: AssetSubmis
 
         let finalUrl = '';
 
-        // Helper to process fee
-        const processFee = async () => {
-             setUploadStatus('Processing protocol fee...');
-             const price = Number(formData.price);
-             const fee = price * 0.01;
-             
-             if (fee > 0) {
-                 if (!embeddedWallet) {
-                     throw new Error('Wallet not connected');
-                 }
-                 
-                 const data = encodeFunctionData({
-                     abi: erc20Abi,
-                     functionName: 'transfer',
-                     args: ['0x3141011f001FB5f1CdE0183ACDdD9434Fa473F70', parseUnits(fee.toFixed(6), 6)]
-                 });
-
-                 const receipt = await sendTransaction({
-                     to: '0x83BDe9dF64af5e475DB44ba21C1dF25e19A0cf9a', // mUSDT
-                     data: data,
-                     chainId: 421614
-                 },
-                {
-                    sponsor: true
-                });
-                 console.log('Fee paid:', receipt.hash);
-             }
-        };
-
         if (uploadMode === 'file') {
             if (!file) {
                 setError("Please select an image file.");
@@ -146,16 +104,13 @@ export function AssetSubmission({ onSuccess, onRedirectToRegister }: AssetSubmis
             }
 
             try {
-                // 1. Process Payment (1% Fee)
-                await processFee();
-
-                // 2. Upload to Pinata
+                // 1. Upload to Pinata
                 setUploadStatus('Uploading image to IPFS...');
                 finalUrl = await pinata.uploadFile(file);
                 console.log('Pinata URL:', finalUrl);
             } catch (err: any) {
                 console.error(err);
-                setError(err.message || 'Failed to process request');
+                setError(err.message || 'Failed to upload file');
                 setLoading(false);
                 return;
             }
@@ -165,22 +120,11 @@ export function AssetSubmission({ onSuccess, onRedirectToRegister }: AssetSubmis
                 setLoading(false);
                 return;
             }
-            
-            // Handle Payment for URL mode too
-             try {
-                await processFee();
-            } catch (err: any) {
-                console.error(err);
-                setError(err.message || 'Payment failed');
-                setLoading(false);
-                return;
-            }
-
             finalUrl = directUrl.trim();
         }
 
         try {
-            // 3. Submit Asset to DB
+            // 2. Submit Asset to DB
             setUploadStatus('Creating asset...');
             await api.submitAsset({
                 creatorId: Number(creatorId),
@@ -331,7 +275,7 @@ export function AssetSubmission({ onSuccess, onRedirectToRegister }: AssetSubmis
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Price (mUSDT)
+                        Price (ETH)
                     </label>
                     <input
                         type="number"
@@ -340,21 +284,8 @@ export function AssetSubmission({ onSuccess, onRedirectToRegister }: AssetSubmis
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                         className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:bg-white focus:border-blue-500 transition-all"
-                        placeholder="1.0"
+                        placeholder="0.1"
                     />
-                    {formData.price && !isNaN(Number(formData.price)) && (
-                        <div className="mt-2 flex items-start gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-100">
-                            <AlertCircle className="w-4 h-4 text-[#12AAFF] flex-shrink-0 mt-0.5" />
-                            <div>
-                                <p className="font-medium text-[#12AAFF]">Protocol Fee Required</p>
-                                <p>
-                                    To create this asset, a 1% protocol fee of 
-                                    <strong className="mx-1 text-gray-900">{(Number(formData.price) * 0.01)} mUSDT</strong>
-                                    will be deducted from your wallet.
-                                </p>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 <div>

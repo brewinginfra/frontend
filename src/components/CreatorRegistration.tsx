@@ -2,27 +2,22 @@ import { useState } from 'react';
 import { api } from '../services/api';
 import { storage } from '../services/storage';
 import { User, LogIn, Sparkles, Wallet } from 'lucide-react';
-import { useWallets, getEmbeddedConnectedWallet } from '@privy-io/react-auth';
 
 interface CreatorRegistrationProps {
     onSuccess: () => void;
 }
 
 export function CreatorRegistration({ onSuccess }: CreatorRegistrationProps) {
-    const { wallets } = useWallets();
-    const embeddedWallet = getEmbeddedConnectedWallet(wallets);
-    const walletAddress = embeddedWallet?.address || '';
-
     // Toggle between 'signup' and 'signin' modes
     const [mode, setMode] = useState<'signup' | 'signin'>('signup');
 
     // Sign Up form state
     const [name, setName] = useState('');
-    // Wallet address is now derived from embeddedWallet
+    const [walletAddress, setWalletAddress] = useState('');
 
     // Sign In form state
     const [loginUsername, setLoginUsername] = useState('');
-    // loginWalletAddress is now derived from embeddedWallet
+    const [loginWalletAddress, setLoginWalletAddress] = useState('');
 
     // Focus states for animations
     const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -33,10 +28,6 @@ export function CreatorRegistration({ onSuccess }: CreatorRegistrationProps) {
 
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!walletAddress) {
-            setError('No wallet connected');
-            return;
-        }
         setLoading(true);
         setError(null);
 
@@ -54,15 +45,11 @@ export function CreatorRegistration({ onSuccess }: CreatorRegistrationProps) {
 
     const handleSignIn = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!walletAddress) {
-            setError('No wallet connected');
-            return;
-        }
         setLoading(true);
         setError(null);
 
         try {
-            const response = await api.loginCreator(loginUsername, walletAddress);
+            const response = await api.loginCreator(loginUsername, loginWalletAddress);
             storage.saveCreatorId(response.creatorId);
             setSuccess(true);
             setTimeout(() => onSuccess(), 800);
@@ -214,20 +201,22 @@ export function CreatorRegistration({ onSuccess }: CreatorRegistrationProps) {
 
                                 {/* Wallet Address Field */}
                                 <div className="relative group">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2 transition-colors">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2 transition-colors group-focus-within:text-[#12AAFF]">
                                         Wallet Address
                                     </label>
                                     <div className="relative">
-                                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300 text-gray-400`}>
+                                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300 ${focusedField === 'wallet' ? 'text-[#12AAFF] scale-110' : 'text-gray-400'
+                                            }`}>
                                             <Wallet className="w-5 h-5" />
                                         </div>
                                         <input
                                             type="text"
                                             required
-                                            disabled
-                                            value={walletAddress || 'Checking wallet...'}
-                                            readOnly
-                                            className="w-full bg-gray-100 border-2 border-gray-100 rounded-xl pl-12 pr-4 py-3.5 text-gray-500 cursor-not-allowed font-mono text-sm"
+                                            value={walletAddress}
+                                            onChange={(e) => setWalletAddress(e.target.value)}
+                                            onFocus={() => setFocusedField('wallet')}
+                                            onBlur={() => setFocusedField(null)}
+                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl pl-12 pr-4 py-3.5 text-gray-900 focus:outline-none focus:bg-white focus:border-[#12AAFF] transition-all duration-300 hover:border-gray-200 font-mono text-sm"
                                             placeholder="0x..."
                                         />
                                     </div>
@@ -279,20 +268,22 @@ export function CreatorRegistration({ onSuccess }: CreatorRegistrationProps) {
 
                                 {/* Wallet Address Field */}
                                 <div className="relative group">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2 transition-colors">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2 transition-colors group-focus-within:text-[#12AAFF]">
                                         Wallet Address
                                     </label>
                                     <div className="relative">
-                                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300 text-gray-400`}>
+                                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300 ${focusedField === 'loginWallet' ? 'text-[#12AAFF] scale-110' : 'scale-100 text-gray-400'
+                                            }`}>
                                             <Wallet className="w-5 h-5" />
                                         </div>
                                         <input
                                             type="text"
                                             required
-                                            disabled
-                                            value={walletAddress || 'Checking wallet...'}
-                                            readOnly
-                                            className="w-full bg-gray-100 border-2 border-gray-100 rounded-xl pl-12 pr-4 py-3.5 text-gray-500 cursor-not-allowed font-mono text-sm"
+                                            value={loginWalletAddress}
+                                            onChange={(e) => setLoginWalletAddress(e.target.value)}
+                                            onFocus={() => setFocusedField('loginWallet')}
+                                            onBlur={() => setFocusedField(null)}
+                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl pl-12 pr-4 py-3.5 text-gray-900 focus:outline-none focus:bg-white focus:border-[#12AAFF] transition-all duration-300 hover:border-gray-200 font-mono text-sm"
                                             placeholder="0x..."
                                         />
                                     </div>

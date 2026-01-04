@@ -1,10 +1,10 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { MeshDistortMaterial, Float, Environment, Torus } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import { ArrowRight, Zap, Shield, Wallet, Users, Twitter, FileText, Code, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { usePrivy } from '@privy-io/react-auth';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 const FluidTorus = () => {
   return (
@@ -232,7 +232,7 @@ const Footer = () => (
         <a href="#" className="flex items-center gap-2 text-gray-500 hover:text-[#12AAFF] transition-colors">
           <Twitter size={18} /> Twitter
         </a>
-          <a href="#" className="flex items-center gap-2 text-gray-500 hover:text-[#12AAFF] transition-colors">
+        <a href="#" className="flex items-center gap-2 text-gray-500 hover:text-[#12AAFF] transition-colors">
           <FileText size={18} /> Docs
         </a>
       </div>
@@ -242,26 +242,10 @@ const Footer = () => (
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { login, authenticated, logout } = usePrivy();
-  // We can track if the user intentionally launched the app to verify wallet creation if needed, 
-  // but standard Privy flow creates embedded wallet on login if configured (which it is).
-
-  // useEffect(() => {
-  //   logout();
-  // }, []);
-
 
   const handleLaunch = () => {
-    if (!authenticated) {
-      login();
-    }
+    navigate('/mainpage');
   };
-
-  useEffect(() => {
-    if (authenticated) {
-      navigate("/mainpage");
-    }
-  }, [authenticated, navigate]);
 
   return (
     <div className="min-h-screen bg-[#F3F4F6] font-[Inter] selection:bg-[#12AAFF] selection:text-white">
