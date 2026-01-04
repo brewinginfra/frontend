@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Wallet, Copy, ExternalLink, LogOut } from 'lucide-react';
 import { ethers } from 'ethers';
 import { motion, AnimatePresence } from 'framer-motion';
+import { storage } from '@/services/storage';
 
 export function WalletConnect() {
     const [account, setAccount] = useState<string | null>(null);
@@ -84,6 +85,7 @@ export function WalletConnect() {
         setAccount(null);
         setBalance('0');
         setShowDropdown(false);
+        storage.clearCreatorId();
     };
 
     const copyAddress = () => {

@@ -1,4 +1,4 @@
-import { Home, Compass, Bookmark, MessageCircle, DollarSign, BarChart3, Settings, LogOut } from 'lucide-react';
+import { Home, Compass, Bookmark, MessagesSquare, DollarSign, BarChart3, Settings, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { storage } from '../services/storage';
 
@@ -13,7 +13,7 @@ export function Sidebar({ activePage, setActivePage }: SidebarProps) {
   const menuItems = [
     { icon: Home, label: 'Home', page: 'home' },
     { icon: Compass, label: 'Discover', page: 'discover' },
-    { icon: MessageCircle, label: 'Messages', page: 'messages' },
+    { icon: MessagesSquare, label: 'Messages', page: 'messages' },
     { icon: Bookmark, label: 'Bookmarks', page: 'bookmarks' },
     { icon: DollarSign, label: 'Creator Studio', page: 'register' },
     { icon: BarChart3, label: 'My Assets', page: 'my-assets' },
@@ -48,7 +48,7 @@ export function Sidebar({ activePage, setActivePage }: SidebarProps) {
         </button>
       </div>
 
-      <button
+      {/* <button
         onClick={() => {
           storage.clearCreatorId();
           navigate('/');
@@ -58,7 +58,7 @@ export function Sidebar({ activePage, setActivePage }: SidebarProps) {
       >
         <LogOut className="w-5 h-5" />
         <span>Log Out</span>
-      </button>
+      </button> */}
     </aside>
   );
 }

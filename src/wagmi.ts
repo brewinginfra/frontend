@@ -1,9 +1,12 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { mainnet, polygon, optimism, arbitrum, base } from 'wagmi/chains';
+import { arbitrumSepolia } from 'viem/chains';
+import { http } from 'wagmi';
 
-export const config = getDefaultConfig({
-    appName: 'ArbiFans',
-    projectId: 'YOUR_PROJECT_ID', // Get from https://cloud.walletconnect.com
-    chains: [mainnet, polygon, optimism, arbitrum, base],
-    ssr: false,
+
+import { createConfig } from '@privy-io/wagmi';
+
+export const config = createConfig({
+   chains: [arbitrumSepolia],
+   transports: {
+    [arbitrumSepolia.id]: http(),
+  },
 });

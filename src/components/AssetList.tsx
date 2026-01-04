@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api, Asset } from '../services/api';
 import { storage } from '../services/storage';
 import { motion } from 'framer-motion';
+import { FeedCard } from './FeedCard';
 
 interface AssetListProps {
     onAssetClick: (id: number) => void;
@@ -58,6 +59,51 @@ export function AssetList({ onAssetClick, creatorId }: AssetListProps) {
         );
     }
 
+    // Show empty state for "My Assets" when user is not a creator
+    // When creatorId is undefined, it means user clicked "My Assets" but isn't a creator
+    if (creatorId === undefined) {
+        // User is viewing "My Assets" but is not a creator
+        return (
+            <div className="p-8 flex flex-col items-center justify-center text-center min-h-[400px]">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                        <circle cx="9" cy="9" r="2" />
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Yet</h3>
+                <p className="text-gray-500 text-sm mb-4 max-w-xs">
+                    Become a creator to start uploading and selling your exclusive content!
+                </p>
+            </div>
+        );
+    }
+
+    // Show empty state for creators who don't have any assets yet
+    if (creatorId && assets.length === 0) {
+        return (
+            <div className="p-8 flex flex-col items-center justify-center text-center min-h-[400px]">
+                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                        <path d="M5 12h14" />
+                        <path d="M12 5v14" />
+                    </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Yet</h3>
+                <p className="text-gray-500 text-sm mb-4 max-w-xs">
+                    You haven't uploaded any content yet. Start sharing your exclusive content!
+                </p>
+                <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'submit-asset' }))}
+                    className="px-6 py-2 bg-[#12AAFF] text-white font-medium rounded-full hover:bg-blue-600 transition"
+                >
+                    Upload Your First Asset
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="p-4 space-y-4">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
@@ -66,57 +112,19 @@ export function AssetList({ onAssetClick, creatorId }: AssetListProps) {
             <div className="grid grid-cols-1 gap-6">
                 {assets.map((asset) => {
                     const isOwner = currentCreatorId === asset.creatorId;
-                    const isUnlocked = asset.unlockableContent === true;
-                    const shouldBlur = !isOwner && !isUnlocked;
-
-                    // Debug logging
-                    console.log('Asset ID:', asset.id, 'Creator:', asset.creatorId, 'Current User:', currentCreatorId, 'isOwner:', isOwner, 'shouldBlur:', shouldBlur);
 
                     return (
                         <motion.div
                             key={asset.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            onClick={() => onAssetClick(asset.id)}
-                            className="bg-white p-4 rounded-xl border border-gray-200 cursor-pointer hover:border-[#12AAFF] hover:shadow-md transition group flex flex-col"
                         >
-                            <div className="aspect-video bg-gray-50 rounded-lg mb-3 overflow-hidden border border-gray-100 relative group-hover:border-blue-100 transition">
-                                <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
-                                    {asset.Url ? (
-                                        <img
-                                            src={asset.Url}
-                                            alt={asset.description}
-                                            className={`w-full h-full object-cover group-hover:scale-105 transition duration-500 ${shouldBlur ? 'blur-md' : ''}`}
-                                            onError={(e) => {
-                                                e.currentTarget.style.display = 'none';
-                                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                                            }}
-                                        />
-                                    ) : (
-                                        <div className="flex flex-col items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
-                                            </div>
-                                            <span className="text-xs font-medium text-gray-400">No Image</span>
-                                        </div>
-                                    )}
-                                    <div className="hidden absolute inset-0 flex flex-col items-center justify-center bg-gray-50 text-gray-500 gap-2 p-4 text-center">
-                                        <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
-                                        </div>
-                                        <span className="text-xs break-all line-clamp-2">Failed to load image</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-gray-900 font-medium line-clamp-2 text-sm">{asset.description}</p>
-                                    <div className="mt-2 text-xs text-blue-500">Creator #{asset.creatorId}</div>
-                                </div>
-                                <div className="bg-[#12AAFF]/10 text-[#12AAFF] px-3 py-1 rounded-full text-sm font-bold">
-                                    {asset.price} ETH
-                                </div>
-                            </div>
+                            <FeedCard
+                                asset={asset}
+                                creatorName={`Creator #${asset.creatorId}`}
+                                isOwner={isOwner}
+                                onClick={() => onAssetClick(asset.id)}
+                            />
                         </motion.div>
                     );
                 })}

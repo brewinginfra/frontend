@@ -3,6 +3,8 @@
     "version": "0.1.0",
     "private": true,
     "dependencies": {
+        "@privy-io/react-auth": "^3.9.0",
+        "@privy-io/wagmi": "^2.1.1",
         "@radix-ui/react-accordion": "^1.2.3",
         "@radix-ui/react-alert-dialog": "^1.1.6",
         "@radix-ui/react-aspect-ratio": "^1.1.2",
@@ -34,6 +36,7 @@
         "@react-three/fiber": "^8.18.0",
         "@tanstack/react-query": "^5.90.12",
         "@types/three": "^0.182.0",
+        "buffer": "^6.0.3",
         "class-variance-authority": "^0.7.1",
         "clsx": "*",
         "cmdk": "^1.1.1",
@@ -56,7 +59,8 @@
         "three": "^0.182.0",
         "vaul": "^1.1.2",
         "viem": "^2.41.2",
-        "wagmi": "^2.19.5"
+        "wagmi": "^2.19.5",
+        "wagmi-config": "link:@/wagmi-config"
     },
     "devDependencies": {
         "@types/node": "^20.10.0",
